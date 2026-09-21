@@ -100,10 +100,14 @@ Slash commands available: `/seed-icd10`, `/new-endpoint`, `/precommit` — see `
 
 ## Decisions
 
-Append-only log of project-level calls made outside the assignment doc, so they persist
-across sessions instead of living only in chat history. When you (agent or human) settle
-something during implementation that isn't already covered above, add one line here —
-date, decision, one-clause reason. Don't relitigate an entry without a new reason.
+Append-only log of project-level calls, so they persist across sessions instead of living
+only in chat history. Add an entry when a change picks one option over a named
+alternative, guards against a failure the code doesn't make obvious, sets a convention
+later code should follow, or narrows something the assignment left open — not for routine
+work, since an over-full log stops being read. Write it with `/log-decision`, and stage
+`CLAUDE.md` in the same commit as the code it explains; a `git commit` hook asks about it
+whenever architecture-bearing files change without `CLAUDE.md`. Format: date, decision,
+one clause of why. Don't relitigate an entry without a new reason.
 
 - 2026-09-21 — Frontend is **Nuxt 3** (3.21.x), not 4. Matches the assignment brief exactly;
   initial scaffold was Nuxt 4 and was deliberately downgraded.
@@ -118,14 +122,23 @@ date, decision, one-clause reason. Don't relitigate an entry without a new reaso
   Kept `typescript` itself, since `typescript.tsdk` in `.vscode/settings.json` does use it.
 - 2026-09-21 — No `patients` table. The assignment doesn't specify a Patient entity;
   `consultations.patient_name` is a plain indexed string.
+- 2026-09-22 — `app/models/__init__.py` imports its sibling modules by discovery
+  (`pkgutil.iter_modules`) instead of listing them by hand. Alembic's `env.py` relies on
+  `import app.models` to populate `Base.metadata`, and a model missing from a hand-written
+  list yields a silently empty migration. Do not "simplify" this back to explicit imports.
+- 2026-09-22 — Domain-exception status is resolved by walking `type(exc).__mro__` in
+  `main.py`, not by exact-type lookup, so a subclass inherits its parent's status
+  (`DiagnosisNotFoundError(NotFoundError)` → 404). Services may subclass freely; a
+  regression test in `tests/integration/test_error_envelope.py` guards this.
 
 ## Project state
 
 Backend foundation is in place: `app/` package with `Settings`, `database.py` (engine,
 `get_db`, SQLite FK pragma), domain exceptions, error-envelope handlers and `/health`;
 Alembic initialised (`migrations/`, URL read from `Settings`); pytest fixtures in
-`tests/conftest.py`. No models, schemas, repositories, services or business endpoints yet —
-those packages exist but are empty. `.env.example` is still to be written by hand.
+`tests/conftest.py`; `.env.example` and a backend `README.md` written. No models, schemas,
+repositories, services or business endpoints yet — those packages exist but are empty, and
+`migrations/versions/` holds no revision.
 
 Frontend is still a scaffold: `app.vue` only, no pages, and the lint/test/typecheck scripts
 are **not installed yet**; add them with `pnpm add -D` on first use, then update this file

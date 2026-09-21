@@ -1,6 +1,6 @@
 ---
 description: Run all checks for whichever app(s) changed, then propose a scoped commit
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(uv run:*), Bash(pnpm:*)
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(uv run:*), Bash(pnpm:*), Read, Edit
 ---
 
 Run the full check suite before any commit — never commit code that fails these.
@@ -36,7 +36,15 @@ every check from the top — a fix for one check can break another. Never commit
 failing check, and never silence a failure (`# type: ignore`, a skipped test, a loosened
 lint rule) just to get to green — fix the underlying issue or explain why the check is wrong.
 
-## 5. On success
+## 5. Decisions check
+
+Read the diff and ask: did this work settle anything a future session would otherwise
+re-litigate — a convention, a tradeoff, a constraint, a guard against a non-obvious
+failure? If yes, add the entry now via `/log-decision` so it lands in the same commit as
+the code. If no, say "no decision to log" in one clause and carry on. Answer the question
+explicitly either way; skipping it silently is how the log goes stale.
+
+## 6. On success
 
 Show `git diff --stat` and propose ONE commit scoped to a single logical change, using
 Conventional Commits per `.claude/rules/coding-standards.md`
