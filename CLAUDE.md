@@ -9,8 +9,8 @@ logically-scoped steps. Never squash a feature into one giant commit.
 
 ## Stack — fixed, do not change without asking
 
-| Layer    | Choice                                                           |
-| -------- | ---------------------------------------------------------------- |
+| Layer    | Choice                                                            |
+| -------- | ----------------------------------------------------------------- |
 | Backend  | FastAPI, Python >= 3.14, package manager **uv** (never `pip`)     |
 | DB       | **SQLite** + SQLAlchemy 2.0 (sync) + Alembic                      |
 | Frontend | **Nuxt 3** (3.21.x), Vue 3, TypeScript, **pnpm** (never npm/yarn) |
@@ -82,7 +82,6 @@ API payloads are `snake_case` on both sides. Do not add a camelCase mapping laye
 - Don't catch a bare `Exception` to make an error go away, and don't return HTTP 200 on failure.
 - Don't hardcode secrets or the API URL. Config goes through Pydantic `Settings` / `runtimeConfig`.
 - Don't commit `*.db`, `.venv/`, `node_modules/`, `.nuxt/`, `.env`.
-- Don't read or edit anything in `claude-explore/` — unrelated personal notes, not project code.
 - Don't add a dependency for something the stdlib or an existing dep already does.
 
 ## Detailed rules — read on demand
@@ -96,6 +95,29 @@ when you need it:
   Vue/Nuxt conventions, error envelope. Read before writing non-trivial code.
 - `.claude/rules/testing.md` — test layout, fixtures, mocking policy, what to cover.
   Read before writing or changing tests.
+
+Slash commands available: `/seed-icd10`, `/new-endpoint`, `/precommit` — see `.claude/commands/`.
+
+## Decisions
+
+Append-only log of project-level calls made outside the assignment doc, so they persist
+across sessions instead of living only in chat history. When you (agent or human) settle
+something during implementation that isn't already covered above, add one line here —
+date, decision, one-clause reason. Don't relitigate an entry without a new reason.
+
+- 2026-09-21 — Frontend is **Nuxt 3** (3.21.x), not 4. Matches the assignment brief exactly;
+  initial scaffold was Nuxt 4 and was deliberately downgraded.
+- 2026-09-21 — Database is **SQLite**, not PostgreSQL. Lightest option that satisfies
+  "lightweight SQL DB"; no server process needed for a take-home-sized project.
+- 2026-09-21 — **mypy is the source of truth** for type correctness (`uv run mypy app`
+  gates commits). pyright/Pylance in the editor is live feedback only; on disagreement,
+  mypy wins.
+- 2026-09-21 — Dropped the standalone `pyright` (backend) and `typescript-language-server`
+  (frontend) devDependencies. VS Code's Pylance and Volar don't call either binary directly,
+  and the project is small enough that the extra pinned dependency isn't worth carrying.
+  Kept `typescript` itself, since `typescript.tsdk` in `.vscode/settings.json` does use it.
+- 2026-09-21 — No `patients` table. The assignment doesn't specify a Patient entity;
+  `consultations.patient_name` is a plain indexed string.
 
 ## Project state
 
