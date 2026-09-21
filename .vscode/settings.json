@@ -1,0 +1,51 @@
+{
+  // Python (backend) — use the uv-managed venv; Pylance/pyright for live editor
+  // feedback only. `uv run mypy app` is the authoritative check (see coding-standards.md).
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+  "python.analysis.include": ["backend/app/**", "backend/tests/**"],
+  "python.analysis.exclude": ["**/__pycache__", "**/.venv", "**/node_modules"],
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingTypeStubs": "none"
+  },
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.cwd": "${workspaceFolder}/backend",
+  "python.testing.pytestArgs": ["tests"],
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+
+  // TypeScript / Vue (frontend) — use the workspace's own TypeScript, not the
+  // one bundled with VS Code, so editor diagnostics match `pnpm typecheck`.
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "vue.server.hybridMode": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "Vue.volar"
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "Vue.volar"
+  },
+
+  // Housekeeping — keep generated/lock noise out of explorer & search
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.venv": true,
+    "**/node_modules": true,
+    "**/.nuxt": true,
+    "**/.output": true
+  },
+  "search.exclude": {
+    "**/uv.lock": true,
+    "**/pnpm-lock.yaml": true,
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/.nuxt": true
+  }
+}
