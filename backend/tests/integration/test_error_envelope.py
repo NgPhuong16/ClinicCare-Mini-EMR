@@ -16,6 +16,12 @@ class _Payload(BaseModel):
     name: str = Field(min_length=1)
 
 
+class _DiagnosisNotFoundError(NotFoundError):
+    """Stands in for the specific not-found errors the services will raise."""
+
+    code = "DIAGNOSIS_NOT_FOUND"
+
+
 def _build_app() -> FastAPI:
     app = FastAPI()
     register_exception_handlers(app)
@@ -23,6 +29,10 @@ def _build_app() -> FastAPI:
     @app.get("/not-found")
     def not_found() -> None:
         raise NotFoundError("Consultation 42 does not exist")
+
+    @app.get("/subclass-not-found")
+    def subclass_not_found() -> None:
+        raise _DiagnosisNotFoundError("Unknown diagnosis code: Z99.9")
 
     @app.get("/invalid")
     def invalid() -> None:
@@ -56,6 +66,14 @@ def test_not_found_error_maps_to_404_envelope(raising_client: TestClient) -> Non
     assert response.json() == {
         "error": {"code": "NOT_FOUND", "message": "Consultation 42 does not exist"}
     }
+
+
+def test_domain_error_subclass_inherits_its_parents_status(raising_client: TestClient) -> None:
+    # Status is resolved through the MRO. A plain type() lookup would answer 400 here.
+    response = raising_client.get("/subclass-not-found")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "DIAGNOSIS_NOT_FOUND"
 
 
 def test_validation_error_maps_to_422_envelope(raising_client: TestClient) -> None:

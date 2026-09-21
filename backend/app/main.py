@@ -37,9 +37,19 @@ def _envelope(
     return JSONResponse(status_code=status_code, content={"error": error})
 
 
+def _status_for(exc: DomainError) -> int:
+    # Walk the MRO, most specific first, so a subclass such as
+    # DiagnosisNotFoundError(NotFoundError) inherits 404 instead of falling through to 400.
+    for klass in type(exc).__mro__:
+        status = _DOMAIN_STATUS.get(klass)
+        if status is not None:
+            return status
+    return 400
+
+
 async def _domain_error_handler(_request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, DomainError)
-    return _envelope(_DOMAIN_STATUS.get(type(exc), 400), exc.code, exc.message)
+    return _envelope(_status_for(exc), exc.code, exc.message)
 
 
 async def _request_validation_handler(_request: Request, exc: Exception) -> JSONResponse:
