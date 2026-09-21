@@ -43,11 +43,11 @@ The frontend expects the backend at `http://localhost:8000` by default
 
 ## API
 
-| Method | Path                 | Description                                   |
-| ------ | -------------------- | ---------------------------------------------- |
-| GET    | `/api/v1/diagnoses`  | Search ICD-10 codes: `?search=<term>&limit=`   |
+| Method | Path                    | Description                                     |
+| ------ | ----------------------- | ----------------------------------------------- |
+| GET    | `/api/v1/diagnoses`     | Search ICD-10 codes: `?search=<term>&limit=`    |
 | POST   | `/api/v1/consultations` | Create a consultation note with diagnosis codes |
-| GET    | `/api/v1/consultations` | List/search consultations: `?patient=&code=`  |
+| GET    | `/api/v1/consultations` | List/search consultations: `?patient=&code=`    |
 
 ## Project structure
 

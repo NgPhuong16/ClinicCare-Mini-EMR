@@ -121,7 +121,12 @@ date, decision, one-clause reason. Don't relitigate an entry without a new reaso
 
 ## Project state
 
-Both apps are still scaffolds. `backend/main.py` is the `uv init` placeholder and must be
-replaced by `backend/app/`. Frontend has `app.vue` only — no pages yet. SQLAlchemy,
-Alembic, pytest and the frontend lint/test/typecheck scripts are **not installed yet**;
-add them with `uv add` / `pnpm add -D` on first use, then update this file if a command changes.
+Backend foundation is in place: `app/` package with `Settings`, `database.py` (engine,
+`get_db`, SQLite FK pragma), domain exceptions, error-envelope handlers and `/health`;
+Alembic initialised (`migrations/`, URL read from `Settings`); pytest fixtures in
+`tests/conftest.py`. No models, schemas, repositories, services or business endpoints yet —
+those packages exist but are empty. `.env.example` is still to be written by hand.
+
+Frontend is still a scaffold: `app.vue` only, no pages, and the lint/test/typecheck scripts
+are **not installed yet**; add them with `pnpm add -D` on first use, then update this file
+if a command changes.
