@@ -135,6 +135,10 @@ one clause of why. Don't relitigate an entry without a new reason.
   answers 403 to non-browser fetches, and the NLM API returns exact `(code, name)` JSON, so
   the seed is copied verbatim rather than passed through a summariser. Regenerate from
   the API; do not re-type codes by hand.
+- 2026-09-22 — No hard-delete endpoint for `consultations` is planned; the
+  `ON DELETE CASCADE` on `consultation_diagnoses` is a DB-integrity safeguard, not a
+  user-facing feature. If a "remove consultation" flow is added later, implement it as soft-delete
+  (`deleted_at`), not a real `DELETE` — these are clinical records.
 
 ## Project state
 
