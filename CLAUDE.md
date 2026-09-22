@@ -130,6 +130,11 @@ one clause of why. Don't relitigate an entry without a new reason.
   `main.py`, not by exact-type lookup, so a subclass inherits its parent's status
   (`DiagnosisNotFoundError(NotFoundError)` → 404). Services may subclass freely; a
   regression test in `tests/integration/test_error_envelope.py` guards this.
+- 2026-09-22 — ICD-10 seed data comes from the NLM Clinical Tables API
+  (`clinicaltables.nlm.nih.gov/api/icd10cm/v3/search`), not icd10data.com. icd10data.com
+  answers 403 to non-browser fetches, and the NLM API returns exact `(code, name)` JSON, so
+  the seed is copied verbatim rather than passed through a summariser. Regenerate from
+  the API; do not re-type codes by hand.
 
 ## Project state
 
