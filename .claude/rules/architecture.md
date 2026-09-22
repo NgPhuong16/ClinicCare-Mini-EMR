@@ -107,7 +107,9 @@ reference data, populated from `seeds/icd10_seed.sql`, never written at runtime.
 `notes` (TEXT), `created_at` (TIMESTAMP NOT NULL, server default).
 
 `consultation_diagnoses` — join table, `consultation_id` + `diagnosis_code` composite PK,
-both FK, `ON DELETE CASCADE` from consultation.
+both FK, `ON DELETE CASCADE` from consultation. `diagnosis_code` is also indexed on its
+own: the composite PK only serves lookups that lead with `consultation_id`, and the list
+endpoint's `?code=` filter leads with the code.
 
 The assignment has no Patient entity — `patient_name` is a plain indexed string. Do not
 invent a `patients` table. If the optional JWT feature is built, add `doctors`
