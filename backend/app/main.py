@@ -64,7 +64,7 @@ async def _request_validation_handler(_request: Request, exc: Exception) -> JSON
 async def _http_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, StarletteHTTPException)
     code = _HTTP_STATUS_CODES.get(exc.status_code, "HTTP_ERROR")
-    return _envelope(exc.status_code, code, str(exc.detail))
+    return _envelope(exc.status_code, code, exc.detail)
 
 
 async def _unhandled_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
