@@ -139,6 +139,12 @@ one clause of why. Don't relitigate an entry without a new reason.
   `ON DELETE CASCADE` on `consultation_diagnoses` is a DB-integrity safeguard, not a
   user-facing feature. If a "remove consultation" flow is added later, implement it as soft-delete
   (`deleted_at`), not a real `DELETE` — these are clinical records.
+- 2026-09-22 — Diagnosis search escapes LIKE wildcards (`%`, `_`, `\`) in the repository
+  before building the pattern. Without it `?search=%` matches every row and defeats the
+  blank-term guard. Any future `LIKE` on user input must escape the same way.
+- 2026-09-22 — An out-of-range `limit` (0 or > 100) is rejected with 422 via
+  `Query(ge=1, le=100)`, not silently clamped. Keeps the constraint in the field per
+  coding-standards and makes a bad client visible; do not "soften" this to clamping.
 
 ## Project state
 
