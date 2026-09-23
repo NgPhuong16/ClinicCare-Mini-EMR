@@ -167,12 +167,21 @@ one clause of why. Don't relitigate an entry without a new reason.
 
 ## Project state
 
-Backend foundation is in place: `app/` package with `Settings`, `database.py` (engine,
-`get_db`, SQLite FK pragma), domain exceptions, error-envelope handlers and `/health`;
-Alembic initialised (`migrations/`, URL read from `Settings`); pytest fixtures in
-`tests/conftest.py`; `.env.example` and a backend `README.md` written. No models, schemas,
-repositories, services or business endpoints yet — those packages exist but are empty, and
-`migrations/versions/` holds no revision.
+Backend is feature-complete for the assignment's two entities. Foundation: `app/` package
+with `Settings`, `database.py` (engine, `get_db`, SQLite FK pragma), domain exceptions,
+error-envelope handlers and `/health`; `.env.example` and a backend `README.md`.
+`DiagnosisCode`, `Consultation` and the `consultation_diagnoses` join table are defined,
+with one Alembic revision in `migrations/versions/` creating all three, and
+`seeds/icd10_seed.sql` holding 100 real ICD-10-CM codes loaded by
+`python -m app.scripts.seed`.
+
+Both business endpoints are built through every layer (schemas, repositories, services,
+routes): `GET /api/v1/diagnoses?search=&limit=` searches code and description
+case-insensitively, and `POST /api/v1/consultations` plus
+`GET /api/v1/consultations?patient=&code=&limit=&offset=` create and list consultations.
+`tests/` covers both through `TestClient` against in-memory SQLite, plus unit tests for the
+schema validators and the search-term normaliser. `uv run pytest -q`, `uv run mypy app` and
+`uv run ruff check .` are green.
 
 Frontend tooling is installed: `@nuxt/eslint` + `eslint` (wired through
 `eslint.config.mjs`), `vue-tsc` via `nuxt typecheck`, and `vitest` + `@vue/test-utils` +
