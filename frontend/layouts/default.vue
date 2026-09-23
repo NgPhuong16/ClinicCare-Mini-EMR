@@ -29,6 +29,9 @@
 .layout {
   min-height: 100vh;
   font-family: system-ui, sans-serif;
+  /* The palette assumes a light surface. Without an explicit background the browser's
+     dark-mode default shows through and the dark text becomes unreadable. */
+  background: #fff;
   color: #1a1a1a;
 }
 
