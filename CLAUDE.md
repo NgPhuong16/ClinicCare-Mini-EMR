@@ -183,6 +183,27 @@ one clause of why. Don't relitigate an entry without a new reason.
   emits it as a trailing `Z`, e.g. `2026-09-01T09:00:00Z`. Without it the wire value has no
   offset and a client is free to read it as local time. Fix this in the schema, not by
   changing the column; clients must never assume local time.
+- 2026-09-23 — SSR stays **on**. Page-load data (the consultations list) goes through a
+  keyed, `lazy` `useAsyncData` wrapped in a composable (`useConsultationList`), never in a
+  `.vue`; `lazy` so a NuxtLink navigation switches page and shows the loading state instead
+  of freezing on the previous page, while a hard load still renders server-side.
+  User-triggered data (diagnosis search, search filters, create) keeps using the
+  browser-side `search()`/`list()`/`create()`. The handler **returns** its failure as a
+  plain `{ code, message }` rather than throwing: `useAsyncData` would wrap a thrown error,
+  and an `ApiError` class instance does not survive payload serialisation, so the client
+  would see a different shape from the server. Verified in Nuxt 3.21's source that the
+  default `getCachedData` reads `payload.data` only while hydrating and `static.data`
+  (empty outside prerendering) otherwise, so a cross-route client navigation refetches and
+  a newly created consultation appears without an explicit `refresh()`. Note the same-route
+  case is different: clicking a link to the page you are already on is a router no-op, the
+  component never remounts, and nothing refetches.
+- 2026-09-23 — The server never formats a local time. It cannot know the viewer's zone, so
+  printing one would hydrate into a mismatch and show the *server's* zone to everyone.
+  Timestamps render through Nuxt's built-in `<NuxtTime>` (confirmed present in 3.21.11):
+  it emits a semantic `<time datetime="<ISO UTC>">`, and an `onPrehydrate` script rewrites
+  the text in the browser's zone *before* Vue hydrates, so there is no mismatch. Never pass
+  a `timeZone` prop and never hardcode a zone — verified live rendering `…T15:54:55.000Z`
+  as `10:54 PM` in `Asia/Saigon`.
 
 ## Project state
 

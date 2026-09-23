@@ -26,7 +26,11 @@ export interface ConsultationRead {
   /** Always present in a response, null when the consultation has no notes. */
   notes: string | null
   id: number
-  /** ISO-8601, e.g. "2026-09-23T07:34:01". */
+  /**
+   * ISO-8601 with an explicit UTC offset, which the backend emits as a trailing "Z" —
+   * e.g. "2026-09-23T07:34:01Z". Never assume local time; `new Date()` parses it
+   * correctly and renders in the viewer's own zone.
+   */
   created_at: string
   /** Always ordered by code, on create as well as list. */
   diagnoses: DiagnosisRead[]

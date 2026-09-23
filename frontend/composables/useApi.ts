@@ -58,6 +58,21 @@ export function asApiError(cause: unknown): ApiError {
   return new ApiError('UNEXPECTED_ERROR', cause instanceof Error ? cause.message : 'Unexpected error')
 }
 
+/**
+ * The plain-object form of an ApiError. A class instance does not survive Nuxt's payload
+ * serialisation from server to client, so anything that crosses that boundary carries
+ * this instead — same `code`/`message` contract, on both renders.
+ */
+export interface ApiErrorInfo {
+  code: string
+  message: string
+  details?: ApiErrorDetail[]
+}
+
+export function toApiErrorInfo(error: ApiError): ApiErrorInfo {
+  return { code: error.code, message: error.message, details: error.details }
+}
+
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST'
   query?: Record<string, string | number | undefined>
