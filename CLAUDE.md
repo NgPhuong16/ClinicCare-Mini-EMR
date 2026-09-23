@@ -240,9 +240,22 @@ The API client is in place: `runtimeConfig.public.apiBase` (default
 with `useApi.ts` (the only holder of the base URL, unwraps the error envelope into a
 thrown `ApiError`, falls back to `NETWORK_ERROR`), `useDiagnoses.ts` and
 `useConsultations.ts`; `layouts/default.vue` with the nav, and `app.vue` rendering
-`<NuxtLayout><NuxtPage /></NuxtLayout>`. `tests/` covers the three composables with
-`$fetch` stubbed (21 tests).
+`<NuxtLayout><NuxtPage /></NuxtLayout>`.
 
-No business pages yet: `pages/` holds only a placeholder `index.vue` so the router is
-enabled, and `components/` does not exist. The nav's `/consultations`,
-`/consultations/new` and `/search` links 404 until the pages milestone.
+All three pages exist. `pages/index.vue` redirects to `/consultations`;
+`pages/consultations/index.vue` lists newest-first via `useConsultationList` (keyed, lazy
+`useAsyncData`); `pages/consultations/new.vue` owns `create()` and diagnosis search and
+navigates to the list on success; `pages/search.vue` filters by patient substring and/or
+an exactly-matched diagnosis code through the browser-side `list()`. Every page shows
+loading, empty and error states, and search distinguishes "no filter yet" from "no
+matches".
+
+`components/` holds `consultation/ConsultationTable.vue`, `consultation/ConsultationForm.vue`
+and `diagnosis/DiagnosisSearchSelect.vue` (debounced search, multi-select on the form and
+single-select at `maxCodes: 1` on the search page). Components are presentational — props
+in, events out — and every call to the backend still goes through a composable.
+
+Tests: **64** across `tests/` (composables and the new-consultation page, `$fetch` stubbed)
+and `*.spec.ts` beside each component. `pnpm lint`, `pnpm typecheck` and `pnpm test` are
+green. No `components/ui/` yet; the assignment's three pages did not need shared inputs or
+buttons, so styling lives in each component's scoped CSS.
