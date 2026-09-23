@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import type { DeepReadonly } from 'vue'
 import type { ConsultationRead } from '~/types/api'
 
 interface Props {
-  consultations: ConsultationRead[]
+  // DeepReadonly so a composable's readonly() state passes straight in; a plain
+  // ConsultationRead[] still satisfies it.
+  consultations: DeepReadonly<ConsultationRead[]>
 }
 
 const props = defineProps<Props>()

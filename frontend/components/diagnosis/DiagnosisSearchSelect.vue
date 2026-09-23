@@ -9,7 +9,10 @@ interface Props {
   error: ApiErrorInfo | null
   /** Currently chosen codes. This component never mutates them; it emits a new list. */
   selected: readonly DiagnosisRead[]
+  /** `1` turns this into a single-select: picking a code replaces the current one. */
   maxCodes?: number
+  label?: string
+  placeholder?: string
   inputId?: string
   describedBy?: string
   invalid?: boolean
@@ -17,6 +20,8 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   maxCodes: 20,
+  label: 'Diagnosis codes',
+  placeholder: 'Search by code or description, e.g. diab or E11',
   inputId: 'diagnosis-search',
   describedBy: undefined,
   invalid: false
@@ -32,7 +37,9 @@ const DEBOUNCE_MS = 300
 const term = ref('')
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
 
-const atLimit = computed(() => props.selected.length >= props.maxCodes)
+// Single-select never "fills up": picking replaces, so the input stays usable.
+const isSingle = computed(() => props.maxCodes === 1)
+const atLimit = computed(() => !isSingle.value && props.selected.length >= props.maxCodes)
 const selectedCodes = computed(() => new Set(props.selected.map(d => d.code)))
 const addable = computed(() => props.results.filter(d => !selectedCodes.value.has(d.code)))
 
@@ -45,6 +52,13 @@ watch(term, (value) => {
 onUnmounted(() => clearTimeout(debounceTimer))
 
 function add(diagnosis: DiagnosisRead): void {
+  if (isSingle.value) {
+    emit('update:selected', [diagnosis])
+    // The choice is made, so drop the term and let the list close. Multi-select keeps
+    // both, where the same search is usually the source of the next code too.
+    term.value = ''
+    return
+  }
   if (atLimit.value || selectedCodes.value.has(diagnosis.code)) return
   emit('update:selected', [...props.selected, diagnosis])
 }
@@ -62,13 +76,13 @@ function addFirstMatch(): void {
 
 <template>
   <div class="picker">
-    <label :for="inputId">Diagnosis codes</label>
+    <label :for="inputId">{{ label }}</label>
     <input
       :id="inputId"
       v-model="term"
       type="search"
       autocomplete="off"
-      placeholder="Search by code or description, e.g. diab or E11"
+      :placeholder="placeholder"
       :aria-describedby="describedBy"
       :aria-invalid="invalid || undefined"
       :disabled="atLimit"
@@ -89,7 +103,7 @@ function addFirstMatch(): void {
       No matching codes.
     </p>
 
-    <ul v-else-if="addable.length" class="results">
+    <ul v-else-if="term.trim() && addable.length" class="results">
       <li v-for="diagnosis in addable" :key="diagnosis.code">
         <button type="button" :disabled="atLimit" @click="add(diagnosis)">
           <span class="code">{{ diagnosis.code }}</span>
@@ -98,7 +112,7 @@ function addFirstMatch(): void {
       </li>
     </ul>
 
-    <ul v-if="selected.length" class="chips" aria-label="Selected diagnosis codes">
+    <ul v-if="selected.length" class="chips" :aria-label="isSingle ? 'Selected diagnosis code' : 'Selected diagnosis codes'">
       <li v-for="diagnosis in selected" :key="diagnosis.code" class="chip">
         <span class="code">{{ diagnosis.code }}</span>
         <span class="description">{{ diagnosis.description }}</span>

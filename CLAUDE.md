@@ -204,6 +204,11 @@ one clause of why. Don't relitigate an entry without a new reason.
   the text in the browser's zone *before* Vue hydrates, so there is no mismatch. Never pass
   a `timeZone` prop and never hardcode a zone — verified live rendering `…T15:54:55.000Z`
   as `10:54 PM` in `Asia/Saigon`.
+- 2026-09-24 — The search page's diagnosis-code filter is **picked from diagnosis search
+  results** (`DiagnosisSearchSelect` with `maxCodes: 1`), never typed free-hand. The
+  backend's `?code=` is an exact match, so a typed prefix like `E11` silently returns
+  nothing while looking like a working search. Do not "simplify" this into a free-text box.
+  The patient filter is the opposite — a `LIKE` substring — and stays a plain input.
 
 ## Project state
 
