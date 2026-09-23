@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -47,3 +47,13 @@ class ConsultationRead(ConsultationBase):
     id: int
     created_at: datetime
     diagnoses: list[DiagnosisRead]
+
+    @field_validator("created_at", mode="after")
+    @classmethod
+    def _created_at_is_explicit_utc(cls, value: datetime) -> datetime:
+        # SQLite's CURRENT_TIMESTAMP is UTC but the column is naive, so the serialised
+        # value would carry no offset and a client would be free to read it as local time.
+        # Attach UTC here rather than changing the column.
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)

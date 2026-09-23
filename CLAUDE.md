@@ -177,6 +177,12 @@ one clause of why. Don't relitigate an entry without a new reason.
   fires per debounced keystroke, so "e1" can settle after "e11" and overwrite the newer
   matches while the input still reads "e11" — debouncing makes that rarer, not impossible.
   `create()` is deliberately exempt: one submit, result returned to the caller.
+- 2026-09-23 — `consultations.created_at` is stored **naive UTC** (SQLite has no timezone
+  type and `CURRENT_TIMESTAMP` is UTC) and a `@field_validator` on `ConsultationRead`
+  attaches UTC on the way out, so the JSON always carries an explicit offset — Pydantic
+  emits it as a trailing `Z`, e.g. `2026-09-01T09:00:00Z`. Without it the wire value has no
+  offset and a client is free to read it as local time. Fix this in the schema, not by
+  changing the column; clients must never assume local time.
 
 ## Project state
 

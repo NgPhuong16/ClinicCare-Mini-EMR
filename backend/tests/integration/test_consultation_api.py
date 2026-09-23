@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -100,6 +100,29 @@ def test_list_response_diagnoses_order_matches_create(client: TestClient, codes:
 
     assert [d["code"] for d in listed.json()[0]["diagnoses"]] == ["E11.9", "I10"]
     assert listed.json()[0]["diagnoses"] == created.json()["diagnoses"]
+
+
+def test_create_returns_created_at_as_explicit_utc(client: TestClient, codes: None) -> None:
+    response = client.post(URL, json=_payload())
+
+    created_at = response.json()["created_at"]
+    # The column is naive UTC, so without the schema validator this would carry no offset
+    # and a client would be free to read it as local time.
+    assert created_at.endswith("Z")
+    assert datetime.fromisoformat(created_at).utcoffset() == timedelta(0)
+
+
+def test_list_returns_created_at_as_explicit_utc(client: TestClient, db: Session) -> None:
+    db.add(make_consultation("Nguyen An", created_at=datetime(2026, 9, 1, 9, 0)))
+    db.commit()
+
+    response = client.get(URL)
+
+    # Same instant, now labelled — not shifted by the server's local zone.
+    assert response.json()[0]["created_at"] == "2026-09-01T09:00:00Z"
+    assert datetime.fromisoformat(response.json()[0]["created_at"]) == datetime(
+        2026, 9, 1, 9, 0, tzinfo=UTC
+    )
 
 
 def test_list_returns_newest_first(client: TestClient, db: Session) -> None:
