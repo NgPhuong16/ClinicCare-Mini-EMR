@@ -1,2 +1,5 @@
 allowBuilds:
   esbuild: false
+  # The native binding ships as an optional platform package (@unrs/resolver-binding-*),
+  # so the postinstall that would build it is not needed.
+  unrs-resolver: false

@@ -42,9 +42,9 @@ Frontend — run from `frontend/`:
 pnpm install
 pnpm dev                                  # :3000
 pnpm build && pnpm preview
-pnpm typecheck                            # vue-tsc
-pnpm lint --fix
-pnpm test                                 # vitest
+pnpm typecheck                            # nuxt typecheck (vue-tsc under the hood)
+pnpm lint --fix                           # eslint . --fix
+pnpm test                                 # vitest run
 ```
 
 Never run a command from the repo root — every command belongs to one of the two apps.
@@ -154,6 +154,16 @@ one clause of why. Don't relitigate an entry without a new reason.
   `SessionLocal` exactly. With the default `True`, committed objects reload on access and
   tests observe ordering the deployed app never produces — that masked the POST/GET
   disagreement above. Keep any new session fixture in sync with `database.py`.
+- 2026-09-23 — Frontend `typescript` is pinned `~6.0.3`, not `^7`. TS 7's native build drops
+  the JS API that `vue-tsc` (Volar) resolves as `typescript/lib/tsc` and that
+  `@typescript-eslint/parser` requires (it peers `>=4.8.4 <6.1.0` and throws outright on
+  7.0) — under TS 7 both `pnpm lint` and `pnpm typecheck` fail to start. 6.0 is the last
+  JS-based release. Tilde, not caret, so it cannot drift to 6.1+. Revisit when vue-tsc and
+  typescript-eslint support TS 7; do not "upgrade" it back before then.
+- 2026-09-23 — `unrs-resolver` is `false` in `frontend/pnpm-workspace.yaml`'s `allowBuilds`,
+  alongside `esbuild`. Its native binding ships as an optional platform package
+  (`@unrs/resolver-binding-*`), so the postinstall is unnecessary — but leaving it
+  unanswered makes pnpm exit 1 on *every* `pnpm <script>`, not just install.
 
 ## Project state
 
@@ -164,6 +174,14 @@ Alembic initialised (`migrations/`, URL read from `Settings`); pytest fixtures i
 repositories, services or business endpoints yet — those packages exist but are empty, and
 `migrations/versions/` holds no revision.
 
-Frontend is still a scaffold: `app.vue` only, no pages, and the lint/test/typecheck scripts
-are **not installed yet**; add them with `pnpm add -D` on first use, then update this file
-if a command changes.
+Frontend tooling is installed: `@nuxt/eslint` + `eslint` (wired through
+`eslint.config.mjs`), `vue-tsc` via `nuxt typecheck`, and `vitest` + `@vue/test-utils` +
+`@nuxt/test-utils` + `happy-dom` (`vitest.config.ts`, Nuxt environment). `pnpm lint` and
+`pnpm typecheck` pass. The vitest runner is verified to boot — checked once with
+`pnpm test --passWithNoTests` — but `pnpm test` itself exits 1 with "No test files found"
+until Milestone 5's API-client step lands the composable tests; do not paper over that by
+adding `--passWithNoTests` to the script. `@nuxt/test-utils` is held at the **3.x** line —
+4.x peers on `h3-next` (h3 v2) and is Nuxt 4 only — which in turn caps `vitest` at 3.x.
+
+The app itself is still a scaffold: `app.vue` only, no `pages/`, `components/` or
+`composables/` yet.
