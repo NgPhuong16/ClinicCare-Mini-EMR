@@ -2,28 +2,24 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models.diagnosis import DiagnosisCode
+from app.repositories._like import ESCAPE, contains_pattern
 
-_LIKE_ESCAPE = "\\"
 
-
-def _escape_like(term: str) -> str:
-    # `%` and `_` are LIKE wildcards; a user typing "E11_" should match literally, not
-    # "E11" followed by any character.
-    return (
-        term.replace(_LIKE_ESCAPE, _LIKE_ESCAPE * 2)
-        .replace("%", f"{_LIKE_ESCAPE}%")
-        .replace("_", f"{_LIKE_ESCAPE}_")
-    )
+def get_many_by_codes(session: Session, codes: list[str]) -> list[DiagnosisCode]:
+    if not codes:
+        return []
+    stmt = select(DiagnosisCode).where(DiagnosisCode.code.in_(codes))
+    return list(session.execute(stmt).scalars().all())
 
 
 def search(session: Session, term: str, limit: int) -> list[DiagnosisCode]:
-    pattern = f"%{_escape_like(term)}%"
+    pattern = contains_pattern(term)
     stmt = (
         select(DiagnosisCode)
         .where(
             or_(
-                DiagnosisCode.code.collate("NOCASE").like(pattern, escape=_LIKE_ESCAPE),
-                DiagnosisCode.description.collate("NOCASE").like(pattern, escape=_LIKE_ESCAPE),
+                DiagnosisCode.code.collate("NOCASE").like(pattern, escape=ESCAPE),
+                DiagnosisCode.description.collate("NOCASE").like(pattern, escape=ESCAPE),
             )
         )
         .order_by(DiagnosisCode.code)

@@ -145,6 +145,15 @@ one clause of why. Don't relitigate an entry without a new reason.
 - 2026-09-22 — An out-of-range `limit` (0 or > 100) is rejected with 422 via
   `Query(ge=1, le=100)`, not silently clamped. Keeps the constraint in the field per
   coding-standards and makes a bad client visible; do not "soften" this to clamping.
+- 2026-09-23 — A consultation's attached `diagnoses` are always returned in **code order**,
+  never submission order, so POST and GET agree. `expire_on_commit=False` means POST returns
+  the in-memory list it built, while GET reloads through
+  `relationship(order_by=DiagnosisCode.code)` — so `create()` sorts before writing. Remove
+  that sort and the same record lists its codes differently just-created vs looked-up.
+- 2026-09-23 — The `db` fixture in `tests/conftest.py` sets `expire_on_commit=False` to match
+  `SessionLocal` exactly. With the default `True`, committed objects reload on access and
+  tests observe ordering the deployed app never produces — that masked the POST/GET
+  disagreement above. Keep any new session fixture in sync with `database.py`.
 
 ## Project state
 

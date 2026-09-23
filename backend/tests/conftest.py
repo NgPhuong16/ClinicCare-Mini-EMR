@@ -18,7 +18,10 @@ def db() -> Iterator[Session]:
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     Base.metadata.create_all(engine)
-    with Session(engine) as session:
+    # expire_on_commit=False mirrors SessionLocal in app/core/database.py. With the
+    # default True, a committed object reloads on next access and the tests observe
+    # ordering the deployed app never produces.
+    with Session(engine, expire_on_commit=False) as session:
         yield session
     engine.dispose()
 
