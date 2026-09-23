@@ -164,6 +164,19 @@ one clause of why. Don't relitigate an entry without a new reason.
   alongside `esbuild`. Its native binding ships as an optional platform package
   (`@unrs/resolver-binding-*`), so the postinstall is unnecessary — but leaving it
   unanswered makes pnpm exit 1 on *every* `pnpm <script>`, not just install.
+- 2026-09-23 — The composables' error contract, which the pages are written against. Every
+  failure reaches the UI as an `ApiError` carrying the backend's `code` and `message`, so a
+  page parses one shape. `search()` and `list()` report through their `error` ref and never
+  throw — they back a live-updating list, where a rejected promise per keystroke is noise.
+  `create()` sets `error` **and** rethrows, because a form must know its submit failed
+  rather than watch a ref. Anything without a recognisable envelope (unreachable backend,
+  a proxy's HTML error page) becomes `NETWORK_ERROR`, so no raw fetch error leaks to a user.
+- 2026-09-23 — In `useDiagnoses.search` and `useConsultations.list`, only the most recent
+  call may write `results`/`items`, `error` and `pending`; each instance keeps a request
+  counter and drops late responses, and `reset()` invalidates anything in flight. Search
+  fires per debounced keystroke, so "e1" can settle after "e11" and overwrite the newer
+  matches while the input still reads "e11" — debouncing makes that rarer, not impossible.
+  `create()` is deliberately exempt: one submit, result returned to the caller.
 
 ## Project state
 
@@ -175,8 +188,8 @@ with one Alembic revision in `migrations/versions/` creating all three, and
 `seeds/icd10_seed.sql` holding 100 real ICD-10-CM codes loaded by
 `python -m app.scripts.seed`.
 
-Both business endpoints are built through every layer (schemas, repositories, services,
-routes): `GET /api/v1/diagnoses?search=&limit=` searches code and description
+Both entities are built through every layer (schemas, repositories, services, routes):
+`GET /api/v1/diagnoses?search=&limit=` searches code and description
 case-insensitively, and `POST /api/v1/consultations` plus
 `GET /api/v1/consultations?patient=&code=&limit=&offset=` create and list consultations.
 `tests/` covers both through `TestClient` against in-memory SQLite, plus unit tests for the
@@ -185,12 +198,19 @@ schema validators and the search-term normaliser. `uv run pytest -q`, `uv run my
 
 Frontend tooling is installed: `@nuxt/eslint` + `eslint` (wired through
 `eslint.config.mjs`), `vue-tsc` via `nuxt typecheck`, and `vitest` + `@vue/test-utils` +
-`@nuxt/test-utils` + `happy-dom` (`vitest.config.ts`, Nuxt environment). `pnpm lint` and
-`pnpm typecheck` pass. The vitest runner is verified to boot — checked once with
-`pnpm test --passWithNoTests` — but `pnpm test` itself exits 1 with "No test files found"
-until Milestone 5's API-client step lands the composable tests; do not paper over that by
-adding `--passWithNoTests` to the script. `@nuxt/test-utils` is held at the **3.x** line —
+`@nuxt/test-utils` + `happy-dom` (`vitest.config.ts`, Nuxt environment). `pnpm lint`,
+`pnpm typecheck` and `pnpm test` all pass. `@nuxt/test-utils` is held at the **3.x** line —
 4.x peers on `h3-next` (h3 v2) and is Nuxt 4 only — which in turn caps `vitest` at 3.x.
 
-The app itself is still a scaffold: `app.vue` only, no `pages/`, `components/` or
-`composables/` yet.
+The API client is in place: `runtimeConfig.public.apiBase` (default
+`http://localhost:8000/api/v1`, overridable via `NUXT_PUBLIC_API_BASE`, documented in
+`.env.example`); `types/api.ts` mirroring the backend schemas by hand; `composables/`
+with `useApi.ts` (the only holder of the base URL, unwraps the error envelope into a
+thrown `ApiError`, falls back to `NETWORK_ERROR`), `useDiagnoses.ts` and
+`useConsultations.ts`; `layouts/default.vue` with the nav, and `app.vue` rendering
+`<NuxtLayout><NuxtPage /></NuxtLayout>`. `tests/` covers the three composables with
+`$fetch` stubbed (21 tests).
+
+No business pages yet: `pages/` holds only a placeholder `index.vue` so the router is
+enabled, and `components/` does not exist. The nav's `/consultations`,
+`/consultations/new` and `/search` links 404 until the pages milestone.
