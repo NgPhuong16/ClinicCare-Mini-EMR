@@ -221,6 +221,20 @@ one clause of why. Don't relitigate an entry without a new reason.
   valid syntax because the project requires Python >=3.14 (PEP 758 landed in 3.14). Do not
   "fix" it back to parentheses and do not drop `ruff format` from the workflow. Parentheses
   are still required when the except clause uses `as`.
+- 2026-09-24 — JWT signing/verification uses **PyJWT**, not a hand-rolled implementation.
+  Token signing is security code the stdlib doesn't provide, unlike password hashing
+  (`hashlib.scrypt` already covers that) — this is not a "no dependency for what the stdlib
+  does" violation, it's a different kind of primitive.
+- 2026-09-24 — Auth sessions are **cookie-only** (httponly, `SameSite=Lax`), never a
+  Bearer-header path: `/docs` is same-origin with the API, so the cookie works there too,
+  and there's no second flow to keep in sync. `Settings.jwt_secret` has no hardcoded
+  default — an unset one is generated with `secrets.token_urlsafe` at startup and logged as
+  a warning, so a fresh clone runs with zero config at the cost of every doctor being logged
+  out on restart. Set `JWT_SECRET` in `.env` to avoid that trade-off.
+- 2026-09-24 — `LoginRequest.email` is a plain `str`, not Pydantic's `EmailStr`. `EmailStr`
+  rejects `doctor@cliniccare.local` as a "special-use or reserved name", and a format check
+  adds nothing on login — a malformed address just fails to match on lookup like any other
+  unknown email, and `authenticate()` gives both the same "Invalid email or password".
 
 ## Project state
 
@@ -231,8 +245,10 @@ error-envelope handlers and `/health`; `.env.example` and a backend `README.md`.
 with one Alembic revision in `migrations/versions/` creating all three, and
 `seeds/icd10_seed.sql` holding 100 real ICD-10-CM codes loaded by
 `python -m app.scripts.seed`. Milestone 7 (in progress) has added a `doctors` table
-(`app/models/doctor.py`), password hashing in `app/core/security.py` (stdlib
-`hashlib.scrypt`), and a demo doctor account idempotently seeded alongside the ICD-10 codes.
+(`app/models/doctor.py`), password hashing and JWT signing in `app/core/security.py`
+(stdlib `hashlib.scrypt`, PyJWT), and a demo doctor account idempotently seeded alongside
+the ICD-10 codes. Cookie-based auth endpoints are live: `POST /api/v1/auth/login`,
+`/logout` and `GET /me` (`app/api/v1/auth.py`, `app/services/auth.py`).
 
 Both entities are built through every layer (schemas, repositories, services, routes):
 `GET /api/v1/diagnoses?search=&limit=` searches code and description

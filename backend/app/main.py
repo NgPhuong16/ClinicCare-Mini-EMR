@@ -9,7 +9,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.health import router as health_router
 from app.api.v1.router import router as v1_router
 from app.core.config import settings
-from app.core.exceptions import ConflictError, DomainError, NotFoundError, ValidationError
+from app.core.exceptions import (
+    ConflictError,
+    DomainError,
+    NotFoundError,
+    UnauthorizedError,
+    ValidationError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +23,7 @@ _DOMAIN_STATUS: dict[type[DomainError], int] = {
     NotFoundError: 404,
     ValidationError: 422,
     ConflictError: 409,
+    UnauthorizedError: 401,
 }
 
 _HTTP_STATUS_CODES: dict[int, str] = {

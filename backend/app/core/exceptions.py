@@ -18,3 +18,7 @@ class ValidationError(DomainError):
 
 class ConflictError(DomainError):
     code = "CONFLICT"
+
+
+class UnauthorizedError(DomainError):
+    code = "UNAUTHORIZED"

@@ -8,6 +8,8 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
 from app.main import app
+from app.models.doctor import Doctor
+from tests.factories import DEFAULT_DOCTOR_PASSWORD, make_doctor
 
 
 @pytest.fixture
@@ -32,3 +34,21 @@ def client(db: Session) -> Iterator[TestClient]:
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def doctor(db: Session) -> Doctor:
+    doctor = make_doctor()
+    db.add(doctor)
+    db.commit()
+    return doctor
+
+
+@pytest.fixture
+def auth_client(client: TestClient, doctor: Doctor) -> TestClient:
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": doctor.email, "password": DEFAULT_DOCTOR_PASSWORD},
+    )
+    assert response.status_code == 200
+    return client

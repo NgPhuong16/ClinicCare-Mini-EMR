@@ -1,7 +1,11 @@
 from datetime import datetime
 
+from app.core.security import hash_password
 from app.models.consultation import Consultation
 from app.models.diagnosis import DiagnosisCode
+from app.models.doctor import Doctor
+
+DEFAULT_DOCTOR_PASSWORD = "s3cret-password"
 
 
 def make_diagnosis(
@@ -21,3 +25,10 @@ def make_consultation(
     if created_at is not None:
         consultation.created_at = created_at
     return consultation
+
+
+def make_doctor(
+    email: str = "doctor@example.com",
+    password: str = DEFAULT_DOCTOR_PASSWORD,
+) -> Doctor:
+    return Doctor(email=email, hashed_password=hash_password(password))

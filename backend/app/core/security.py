@@ -8,11 +8,19 @@ import base64
 import hashlib
 import hmac
 import secrets
+from datetime import UTC, datetime, timedelta
+
+import jwt
+
+from app.core.config import settings
 
 _SCRYPT_N = 2**14
 _SCRYPT_R = 8
 _SCRYPT_P = 1
 _SALT_BYTES = 16
+
+# Fixed, not a setting: changing the signing algorithm is a code change, not config.
+ALGORITHM = "HS256"
 
 
 def normalize_email(email: str) -> str:
@@ -40,3 +48,23 @@ def verify_password(password: str, hashed: str) -> bool:
     except ValueError, TypeError:
         return False
     return hmac.compare_digest(derived, expected)
+
+
+def create_access_token(doctor_id: int) -> str:
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(doctor_id),
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.access_token_expire_minutes),
+    }
+    return jwt.encode(payload, settings.jwt_secret.get_secret_value(), algorithm=ALGORITHM)
+
+
+def decode_access_token(token: str) -> int:
+    """Raises jwt.InvalidTokenError (covers expired/malformed/bad-signature tokens and a
+    non-integer `sub`) on anything invalid — callers only need to catch that one type."""
+    payload = jwt.decode(token, settings.jwt_secret.get_secret_value(), algorithms=[ALGORITHM])
+    try:
+        return int(payload["sub"])
+    except (KeyError, ValueError, TypeError) as exc:
+        raise jwt.InvalidTokenError("Token subject is not a valid doctor id") from exc
