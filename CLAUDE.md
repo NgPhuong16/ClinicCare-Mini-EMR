@@ -260,6 +260,10 @@ one clause of why. Don't relitigate an entry without a new reason.
   `useApi.ts` rather than in each composable. `/auth/login` itself is excluded — a wrong
   password there is a normal login failure, not an expired session, and must only show the
   form its own error.
+- 2026-09-24 — The app must be opened on `localhost`, not `127.0.0.1`. The backend's
+  `SameSite=Lax` cookie is scoped to the `localhost` domain by the browser that received
+  it; visiting the frontend at `127.0.0.1:3000` is a different origin as far as the cookie
+  jar is concerned, so the browser never sends it and every request looks logged out.
 
 ## Project state
 
@@ -272,11 +276,11 @@ with one Alembic revision in `migrations/versions/` creating all three, and
 `python -m app.scripts.seed`. Milestone 7 (in progress) has added a `doctors` table
 (`app/models/doctor.py`), password hashing and JWT signing in `app/core/security.py`
 (stdlib `hashlib.scrypt`, PyJWT), and a demo doctor account idempotently seeded alongside
-the ICD-10 codes. Cookie-based auth is live: `POST /api/v1/auth/login`, `/logout` and
-`GET /me` (`app/api/v1/auth.py`, `app/services/auth.py`), `get_current_doctor`
-(`app/api/deps.py`) protecting every `/api/v1/consultations` route (`/api/v1/diagnoses`
-stays public), and `Settings.jwt_secret` validated to be at least 32 characters at
-startup. The frontend login page and route guard are still to come.
+the ICD-10 codes. Milestone 7 (optional JWT auth) is now complete end to end: cookie-based
+`POST /api/v1/auth/login`, `/logout` and `GET /me` (`app/api/v1/auth.py`,
+`app/services/auth.py`), `get_current_doctor` (`app/api/deps.py`) protecting every
+`/api/v1/consultations` route (`/api/v1/diagnoses` stays public), and
+`Settings.jwt_secret` validated to be at least 32 characters at startup.
 
 Both entities are built through every layer (schemas, repositories, services, routes):
 `GET /api/v1/diagnoses?search=&limit=` searches code and description
@@ -300,28 +304,35 @@ thrown `ApiError`, falls back to `NETWORK_ERROR`), `useDiagnoses.ts` and
 `useConsultations.ts`; `layouts/default.vue` with the nav, and `app.vue` rendering
 `<NuxtLayout><NuxtPage /></NuxtLayout>`.
 
-Frontend auth is partly in place: `useApi.ts` sends `credentials: 'include'` on every
-request, forwards the browser's `cookie` header during SSR, and on an `UNAUTHORIZED`
-response from outside `/auth/*` clears the auth state and redirects to
-`/login?redirect=<path>`; `useAuth.ts` owns the `useState('auth-doctor')`
-(`AUTH_DOCTOR_STATE_KEY`, exported from `useApi.ts`) plus
-`fetchMe`/`login`/`logout`/`isLoggedIn`. The route guard, login page and logout UI are
-still to come.
+Frontend auth is in place. `useApi.ts` sends `credentials: 'include'` on every request,
+forwards the browser's `cookie` header during SSR, and on an `UNAUTHORIZED` response from
+outside `/auth/*` clears the auth state and redirects to `/login?redirect=<path>`.
+`useAuth.ts` owns the `useState('auth-doctor')` (`AUTH_DOCTOR_STATE_KEY`, exported from
+`useApi.ts`) plus `fetchMe`/`login`/`logout`/`isLoggedIn`; `middleware/auth.global.ts`
+resolves it once per app load and enforces the redirect both ways (guest → `/login`,
+logged-in visitor on `/login` → `/consultations`); `utils/safeRedirect.ts` guards the
+`?redirect=` query against an open redirect. `pages/login.vue` (`layout: false`) and
+`layouts/default.vue`'s doctor-email-plus-log-out round out the UI.
 
-All three pages exist. `pages/index.vue` redirects to `/consultations`;
+All pages exist. `pages/index.vue` redirects to `/consultations`;
 `pages/consultations/index.vue` lists newest-first via `useConsultationList` (keyed, lazy
 `useAsyncData`); `pages/consultations/new.vue` owns `create()` and diagnosis search and
 navigates to the list on success; `pages/search.vue` filters by patient substring and/or
-an exactly-matched diagnosis code through the browser-side `list()`. Every page shows
-loading, empty and error states, and search distinguishes "no filter yet" from "no
-matches".
+an exactly-matched diagnosis code through the browser-side `list()`; `pages/login.vue`
+handles sign-in. Every page shows loading, empty and error states, and search
+distinguishes "no filter yet" from "no matches".
 
 `components/` holds `consultation/ConsultationTable.vue`, `consultation/ConsultationForm.vue`
 and `diagnosis/DiagnosisSearchSelect.vue` (debounced search, multi-select on the form and
 single-select at `maxCodes: 1` on the search page). Components are presentational — props
 in, events out — and every call to the backend still goes through a composable.
 
-Tests: **74** across `tests/` (composables and the new-consultation page, `$fetch` stubbed)
-and `*.spec.ts` beside each component. `pnpm lint`, `pnpm typecheck` and `pnpm test` are
-green. No `components/ui/` yet; the assignment's three pages did not need shared inputs or
-buttons, so styling lives in each component's scoped CSS.
+Tests: **87** across `tests/` (composables, middleware, the login and new-consultation
+pages, `$fetch` stubbed) and `*.spec.ts` beside each component. `pnpm lint`,
+`pnpm typecheck` and `pnpm test` are green. No `components/ui/` yet; the assignment's
+pages did not need shared inputs or buttons, so styling lives in each component's scoped
+CSS. Manually verified against both dev servers on `localhost` (not `127.0.0.1`): a
+server-side redirect to `/login` when logged out, SSR cookie forwarding (a freshly created
+consultation appears in the server-rendered HTML for a cookie-bearing `curl` request), and
+a full browser login → hard-refresh → create → logout round trip with no hydration
+warnings and an httpOnly `access_token` cookie invisible to `document.cookie`.

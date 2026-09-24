@@ -1,4 +1,6 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+const { doctor, isLoggedIn, logout } = useAuth()
+</script>
 
 <template>
   <div class="layout">
@@ -6,7 +8,7 @@
       <NuxtLink to="/" class="brand">
         ClinicCare
       </NuxtLink>
-      <nav aria-label="Main">
+      <nav v-if="isLoggedIn" aria-label="Main">
         <NuxtLink to="/consultations">
           Consultations
         </NuxtLink>
@@ -17,6 +19,12 @@
           Search
         </NuxtLink>
       </nav>
+      <div v-if="isLoggedIn" class="account">
+        <span class="email">{{ doctor?.email }}</span>
+        <button type="button" class="link-button" @click="logout">
+          Log out
+        </button>
+      </div>
     </header>
 
     <main class="content">
@@ -68,6 +76,28 @@ nav a:focus-visible {
 nav a.router-link-active {
   font-weight: 600;
   color: #1a1a1a;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.email {
+  color: #5a5a5a;
+  font-size: 0.875rem;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #30506b;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .content {
