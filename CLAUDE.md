@@ -264,6 +264,14 @@ one clause of why. Don't relitigate an entry without a new reason.
   `SameSite=Lax` cookie is scoped to the `localhost` domain by the browser that received
   it; visiting the frontend at `127.0.0.1:3000` is a different origin as far as the cookie
   jar is concerned, so the browser never sends it and every request looks logged out.
+- 2026-09-24 — `tests/setup.ts` (wired via `vitest.config.ts`'s `setupFiles`) runs before
+  every test: it stubs the global `$fetch` to throw immediately unless a test installs its
+  own stub, and seeds the `auth-doctor` `useState` to a fixed logged-in doctor. Without
+  this, the global route middleware's `fetchMe()` call on every mounted page or
+  component's first navigation was a real, unstubbed `$fetch` — a testing.md violation
+  ("never hit a real backend from a unit test"), not just the stderr noise it produced.
+  Tests that exercise auth state themselves (`useApi`, `useAuth`, `authMiddleware` specs)
+  reset or stub past this default in their own `beforeEach`.
 
 ## Project state
 

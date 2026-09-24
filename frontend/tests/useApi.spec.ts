@@ -1,5 +1,5 @@
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DoctorRead } from '~/types/api'
 import { AUTH_DOCTOR_STATE_KEY, ApiError, useApi } from '~/composables/useApi'
@@ -11,6 +11,12 @@ function fetchError(data: unknown, status: number): Error & { data: unknown, sta
 
 const navigateToMock = vi.hoisted(() => vi.fn())
 mockNuxtImport('navigateTo', () => navigateToMock)
+
+// This file exercises the auth state directly, so it must start from a clean slate
+// rather than tests/setup.ts's default "logged in" seed for unrelated tests.
+beforeEach(() => {
+  clearNuxtState(AUTH_DOCTOR_STATE_KEY)
+})
 
 afterEach(() => {
   vi.unstubAllGlobals()

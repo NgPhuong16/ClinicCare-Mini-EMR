@@ -9,6 +9,7 @@ export default defineVitestConfig({
       nuxt: {
         domEnvironment: 'happy-dom'
       }
-    }
+    },
+    setupFiles: ['./tests/setup.ts']
   }
 })
