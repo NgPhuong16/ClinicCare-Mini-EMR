@@ -13,9 +13,9 @@ pnpm lint                   # eslint .
 pnpm typecheck              # nuxt typecheck (vue-tsc)
 ```
 
-Open the app at **http://localhost:3000**, not `127.0.0.1` — the backend's login cookie
-is `SameSite=Lax` and scoped to the domain that set it, so `127.0.0.1` looks logged out
-even after a successful login.
+Open the app at **http://localhost:3000**, not `127.0.0.1`: the backend only allows CORS
+requests from `http://localhost:3000`, so on `127.0.0.1` login fails with "Could not
+reach the server" even though the backend is running fine.
 
 Configuration comes from `runtimeConfig.public.apiBase` in `nuxt.config.ts`, overridable
 via `NUXT_PUBLIC_API_BASE`; copy `.env.example` to `.env` to point at a backend that

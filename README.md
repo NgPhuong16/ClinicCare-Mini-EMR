@@ -1,9 +1,9 @@
 # ClinicCare Mini EMR
 
-A minimal EMR for a clinic front desk. A doctor searches ICD-10-CM diagnosis codes,
-records a consultation note against one or more of them, and lists or searches past
-consultations. Two apps in one repo — `backend/` (FastAPI + SQLite) and `frontend/`
-(Nuxt 3) — talking over HTTP only.
+A minimal tool that allows doctors to search ICD-10-CM diagnosis codes, record a
+consultation note against one or more of them, and list or search past consultations.
+Two apps in one repo — `backend/` (FastAPI + SQLite) and `frontend/` (Nuxt 3) — talking
+over HTTP only.
 
 **Implemented, per the brief:**
 
@@ -47,9 +47,9 @@ pnpm install
 pnpm dev                               # http://localhost:3000
 ```
 
-Open **http://localhost:3000** — use `localhost`, not `127.0.0.1`, or the browser won't
-send the login cookie back (it's scoped to the domain that set it; see Authentication
-below). Log in with:
+Open **http://localhost:3000**, not `127.0.0.1`: the backend only allows CORS requests
+from `http://localhost:3000`, so on `127.0.0.1` login fails with "Could not reach the
+server" even though the backend is running fine. Log in with:
 
 ```
 email:    doctor@cliniccare.local
