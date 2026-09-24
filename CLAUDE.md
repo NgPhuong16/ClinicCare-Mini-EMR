@@ -281,14 +281,14 @@ error-envelope handlers and `/health`; `.env.example` and a backend `README.md`.
 `DiagnosisCode`, `Consultation` and the `consultation_diagnoses` join table are defined,
 with one Alembic revision in `migrations/versions/` creating all three, and
 `seeds/icd10_seed.sql` holding 100 real ICD-10-CM codes loaded by
-`python -m app.scripts.seed`. Milestone 7 (in progress) has added a `doctors` table
-(`app/models/doctor.py`), password hashing and JWT signing in `app/core/security.py`
-(stdlib `hashlib.scrypt`, PyJWT), and a demo doctor account idempotently seeded alongside
-the ICD-10 codes. Milestone 7 (optional JWT auth) is now complete end to end: cookie-based
-`POST /api/v1/auth/login`, `/logout` and `GET /me` (`app/api/v1/auth.py`,
-`app/services/auth.py`), `get_current_doctor` (`app/api/deps.py`) protecting every
-`/api/v1/consultations` route (`/api/v1/diagnoses` stays public), and
-`Settings.jwt_secret` validated to be at least 32 characters at startup.
+`python -m app.scripts.seed`. Milestone 7 (optional JWT auth) is complete end to end: a
+`doctors` table (`app/models/doctor.py`) with a demo account idempotently seeded
+alongside the ICD-10 codes; password hashing and JWT signing in `app/core/security.py`
+(stdlib `hashlib.scrypt`, PyJWT); cookie-based `POST /api/v1/auth/login`, `/logout` and
+`GET /me` (`app/api/v1/auth.py`, `app/services/auth.py`); `get_current_doctor`
+(`app/api/deps.py`) protecting every `/api/v1/consultations` route (`/api/v1/diagnoses`
+stays public); and `Settings.jwt_secret` validated to be at least 32 characters at
+startup.
 
 Both entities are built through every layer (schemas, repositories, services, routes):
 `GET /api/v1/diagnoses?search=&limit=` searches code and description
@@ -335,12 +335,21 @@ and `diagnosis/DiagnosisSearchSelect.vue` (debounced search, multi-select on the
 single-select at `maxCodes: 1` on the search page). Components are presentational — props
 in, events out — and every call to the backend still goes through a composable.
 
-Tests: **87** across `tests/` (composables, middleware, the login and new-consultation
-pages, `$fetch` stubbed) and `*.spec.ts` beside each component. `pnpm lint`,
-`pnpm typecheck` and `pnpm test` are green. No `components/ui/` yet; the assignment's
-pages did not need shared inputs or buttons, so styling lives in each component's scoped
-CSS. Manually verified against both dev servers on `localhost` (not `127.0.0.1`): a
-server-side redirect to `/login` when logged out, SSR cookie forwarding (a freshly created
+Tests: **91** across `tests/` (composables, middleware, the login and new-consultation
+pages, `$fetch` stubbed) and `*.spec.ts` beside each component. `tests/setup.ts`
+(`vitest.config.ts`'s `setupFiles`) stubs `$fetch` to fail loudly by default and seeds a
+logged-in `auth-doctor` state, so the global route middleware's incidental `/auth/me`
+call never reaches a real backend in an unrelated test. `pnpm lint`, `pnpm typecheck` and
+`pnpm test` are green. No `components/ui/` yet; the assignment's pages did not need
+shared inputs or buttons, so styling lives in each component's scoped CSS. Manually
+verified against both dev servers on `localhost` (not `127.0.0.1`): a server-side
+redirect to `/login` when logged out, SSR cookie forwarding (a freshly created
 consultation appears in the server-rendered HTML for a cookie-bearing `curl` request), and
 a full browser login → hard-refresh → create → logout round trip with no hydration
 warnings and an httpOnly `access_token` cookie invisible to `document.cookie`.
+
+Backend tests: **91** (`uv run pytest -q`), `uv run ruff check .` and `uv run mypy app`
+are both green. The project is submission-ready: root `README.md`, `backend/README.md`
+and `frontend/README.md` were rewritten for a grader doing a fresh clone, with every
+Quick-start and Testing command re-run against a throwaway database before writing it
+down.
