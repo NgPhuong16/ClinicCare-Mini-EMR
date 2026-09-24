@@ -64,3 +64,15 @@ export interface ConsultationListParams {
   limit?: number
   offset?: number
 }
+
+/** DoctorRead — the signed-in doctor, returned by /auth/login, /auth/me. */
+export interface DoctorRead {
+  id: number
+  email: string
+}
+
+/** LoginRequest — what the client sends to POST /auth/login. */
+export interface LoginRequest {
+  email: string
+  password: string
+}

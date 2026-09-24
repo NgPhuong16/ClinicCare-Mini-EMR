@@ -1,14 +1,21 @@
+import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, useApi } from '~/composables/useApi'
+import type { DoctorRead } from '~/types/api'
+import { AUTH_DOCTOR_STATE_KEY, ApiError, useApi } from '~/composables/useApi'
 
 /** Mimics the FetchError $fetch rejects with: parsed body on `data`, plus `status`. */
 function fetchError(data: unknown, status: number): Error & { data: unknown, status: number } {
   return Object.assign(new Error('fetch failed'), { data, status })
 }
 
+const navigateToMock = vi.hoisted(() => vi.fn())
+mockNuxtImport('navigateTo', () => navigateToMock)
+
 afterEach(() => {
   vi.unstubAllGlobals()
+  navigateToMock.mockReset()
+  clearNuxtState(AUTH_DOCTOR_STATE_KEY)
 })
 
 describe('useApi', () => {
@@ -77,5 +84,43 @@ describe('useApi', () => {
     vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(fetchError({ detail: 'Not Found' }, 404)))
 
     await expect(useApi().request('/nope')).rejects.toMatchObject({ code: 'NETWORK_ERROR' })
+  })
+
+  it('sends credentials: include on every request', async () => {
+    const stub = vi.fn().mockResolvedValue([])
+    vi.stubGlobal('$fetch', stub)
+
+    await useApi().request('/diagnoses')
+
+    const [, options] = stub.mock.calls[0] as [string, { credentials: string }]
+    expect(options.credentials).toBe('include')
+  })
+
+  it('clears the auth state and redirects to login on UNAUTHORIZED from a protected route', async () => {
+    const doctor = useState<DoctorRead | null | undefined>(
+      AUTH_DOCTOR_STATE_KEY,
+      () => ({ id: 1, email: 'doctor@cliniccare.local' })
+    )
+    vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(
+      fetchError({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, 401)
+    ))
+
+    await expect(useApi().request('/consultations')).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+
+    expect(doctor.value).toBeNull()
+    expect(navigateToMock).toHaveBeenCalledTimes(1)
+    const [target] = navigateToMock.mock.calls[0] as [string]
+    expect(target).toMatch(/^\/login\?redirect=/)
+  })
+
+  it('does not redirect on UNAUTHORIZED from /auth/login', async () => {
+    vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(
+      fetchError({ error: { code: 'UNAUTHORIZED', message: 'Invalid email or password' } }, 401)
+    ))
+
+    await expect(useApi().request('/auth/login', { method: 'POST' }))
+      .rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+
+    expect(navigateToMock).not.toHaveBeenCalled()
   })
 })

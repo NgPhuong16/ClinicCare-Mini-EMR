@@ -244,6 +244,22 @@ one clause of why. Don't relitigate an entry without a new reason.
   blank or short key with `InvalidKeyError` rather than `InvalidTokenError` — that surfaced
   as a 500 on `/auth/login` and every consultation request instead of failing fast at
   startup. The generated default (`token_urlsafe(32)`, 43 characters) still passes.
+- 2026-09-24 — `useApi`'s server-side branch forwards only the `cookie` header
+  (`useRequestHeaders(['cookie'])`), never `useRequestFetch`. Cookies aren't port-scoped,
+  so the browser sends the backend's cookie to the Nuxt server on :3000 too, and SSR must
+  relay exactly that header on the server-to-server call to :8000 — `useRequestFetch`
+  would forward every incoming header, including `Host`, which the backend should not see.
+- 2026-09-24 — The signed-in doctor lives in a `useState('auth-doctor')`
+  (`AUTH_DOCTOR_STATE_KEY`, exported from `useApi.ts`; `undefined` = not checked, `null` =
+  checked and logged out, otherwise the doctor), owned by `useAuth.ts`'s
+  `fetchMe`/`login`/`logout`. JS cannot read an httpOnly cookie, so this state, not the
+  cookie itself, is what the app reads to decide what to render — do not add a second,
+  cookie-derived source of truth for it.
+- 2026-09-24 — A response with code `UNAUTHORIZED` from anywhere except `/auth/*` clears
+  that `useState` and redirects to `/login?redirect=<path>`, handled centrally in
+  `useApi.ts` rather than in each composable. `/auth/login` itself is excluded — a wrong
+  password there is a normal login failure, not an expired session, and must only show the
+  form its own error.
 
 ## Project state
 
@@ -257,9 +273,10 @@ with one Alembic revision in `migrations/versions/` creating all three, and
 (`app/models/doctor.py`), password hashing and JWT signing in `app/core/security.py`
 (stdlib `hashlib.scrypt`, PyJWT), and a demo doctor account idempotently seeded alongside
 the ICD-10 codes. Cookie-based auth is live: `POST /api/v1/auth/login`, `/logout` and
-`GET /me` (`app/api/v1/auth.py`, `app/services/auth.py`), and `get_current_doctor`
-(`app/api/deps.py`) protects every `/api/v1/consultations` route — `/api/v1/diagnoses`
-stays public. The frontend login page and route guard are still to come.
+`GET /me` (`app/api/v1/auth.py`, `app/services/auth.py`), `get_current_doctor`
+(`app/api/deps.py`) protecting every `/api/v1/consultations` route (`/api/v1/diagnoses`
+stays public), and `Settings.jwt_secret` validated to be at least 32 characters at
+startup. The frontend login page and route guard are still to come.
 
 Both entities are built through every layer (schemas, repositories, services, routes):
 `GET /api/v1/diagnoses?search=&limit=` searches code and description
@@ -283,6 +300,14 @@ thrown `ApiError`, falls back to `NETWORK_ERROR`), `useDiagnoses.ts` and
 `useConsultations.ts`; `layouts/default.vue` with the nav, and `app.vue` rendering
 `<NuxtLayout><NuxtPage /></NuxtLayout>`.
 
+Frontend auth is partly in place: `useApi.ts` sends `credentials: 'include'` on every
+request, forwards the browser's `cookie` header during SSR, and on an `UNAUTHORIZED`
+response from outside `/auth/*` clears the auth state and redirects to
+`/login?redirect=<path>`; `useAuth.ts` owns the `useState('auth-doctor')`
+(`AUTH_DOCTOR_STATE_KEY`, exported from `useApi.ts`) plus
+`fetchMe`/`login`/`logout`/`isLoggedIn`. The route guard, login page and logout UI are
+still to come.
+
 All three pages exist. `pages/index.vue` redirects to `/consultations`;
 `pages/consultations/index.vue` lists newest-first via `useConsultationList` (keyed, lazy
 `useAsyncData`); `pages/consultations/new.vue` owns `create()` and diagnosis search and
@@ -296,7 +321,7 @@ and `diagnosis/DiagnosisSearchSelect.vue` (debounced search, multi-select on the
 single-select at `maxCodes: 1` on the search page). Components are presentational — props
 in, events out — and every call to the backend still goes through a composable.
 
-Tests: **64** across `tests/` (composables and the new-consultation page, `$fetch` stubbed)
+Tests: **74** across `tests/` (composables and the new-consultation page, `$fetch` stubbed)
 and `*.spec.ts` beside each component. `pnpm lint`, `pnpm typecheck` and `pnpm test` are
 green. No `components/ui/` yet; the assignment's three pages did not need shared inputs or
 buttons, so styling lives in each component's scoped CSS.

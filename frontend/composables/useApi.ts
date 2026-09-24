@@ -1,4 +1,7 @@
-import type { ApiErrorDetail, ApiErrorEnvelope } from '~/types/api'
+import type { ApiErrorDetail, ApiErrorEnvelope, DoctorRead } from '~/types/api'
+
+/** The useState key backing the signed-in doctor, shared with composables/useAuth.ts. */
+export const AUTH_DOCTOR_STATE_KEY = 'auth-doctor'
 
 /**
  * A backend failure, already unwrapped from the error envelope. The UI shows `message`
@@ -85,17 +88,37 @@ export interface ApiRequestOptions {
  */
 export function useApi() {
   const { public: { apiBase } } = useRuntimeConfig()
+  const nuxtApp = useNuxtApp()
+  // Cookies aren't port-scoped, so the browser also sends the backend's cookie to the
+  // Nuxt server on :3000 — but only the server-to-server call needs it forwarded by hand.
+  // Must run here, in the composable's setup body: calling useRequestHeaders inside
+  // request(), or after an await, loses Nuxt's request context. useRequestHeaders, not
+  // useRequestFetch — the latter forwards every incoming header, including Host.
+  const forwardedHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 
   async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
     try {
       return await $fetch<T>(`${apiBase}${path}`, {
         method: options.method ?? 'GET',
         query: options.query,
-        body: options.body as Record<string, unknown> | undefined
+        body: options.body as Record<string, unknown> | undefined,
+        credentials: 'include',
+        headers: forwardedHeaders
       })
     }
     catch (cause) {
-      throw toApiError(cause)
+      const apiError = toApiError(cause)
+      // A wrong password on /auth/login is an ordinary login failure, not an expired
+      // session — that path must only show the form its own error, never redirect.
+      if (apiError.code === 'UNAUTHORIZED' && !path.startsWith('/auth/')) {
+        await nuxtApp.runWithContext(async () => {
+          const doctor = useState<DoctorRead | null | undefined>(AUTH_DOCTOR_STATE_KEY)
+          doctor.value = null
+          const redirect = encodeURIComponent(useRoute().fullPath)
+          await navigateTo(`/login?redirect=${redirect}`)
+        })
+      }
+      throw apiError
     }
   }
 
