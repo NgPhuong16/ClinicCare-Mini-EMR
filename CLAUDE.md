@@ -231,6 +231,10 @@ one clause of why. Don't relitigate an entry without a new reason.
   default — an unset one is generated with `secrets.token_urlsafe` at startup and logged as
   a warning, so a fresh clone runs with zero config at the cost of every doctor being logged
   out on restart. Set `JWT_SECRET` in `.env` to avoid that trade-off.
+- 2026-09-24 — Only the **consultations** router carries the `get_current_doctor`
+  dependency; **diagnoses** stays public. Consultations are patient records; ICD-10 lookup
+  is static reference data with no patient information in it, so gating it behind login
+  would add friction without protecting anything.
 - 2026-09-24 — `LoginRequest.email` is a plain `str`, not Pydantic's `EmailStr`. `EmailStr`
   rejects `doctor@cliniccare.local` as a "special-use or reserved name", and a format check
   adds nothing on login — a malformed address just fails to match on lookup like any other
@@ -247,8 +251,10 @@ with one Alembic revision in `migrations/versions/` creating all three, and
 `python -m app.scripts.seed`. Milestone 7 (in progress) has added a `doctors` table
 (`app/models/doctor.py`), password hashing and JWT signing in `app/core/security.py`
 (stdlib `hashlib.scrypt`, PyJWT), and a demo doctor account idempotently seeded alongside
-the ICD-10 codes. Cookie-based auth endpoints are live: `POST /api/v1/auth/login`,
-`/logout` and `GET /me` (`app/api/v1/auth.py`, `app/services/auth.py`).
+the ICD-10 codes. Cookie-based auth is live: `POST /api/v1/auth/login`, `/logout` and
+`GET /me` (`app/api/v1/auth.py`, `app/services/auth.py`), and `get_current_doctor`
+(`app/api/deps.py`) protects every `/api/v1/consultations` route — `/api/v1/diagnoses`
+stays public. The frontend login page and route guard are still to come.
 
 Both entities are built through every layer (schemas, repositories, services, routes):
 `GET /api/v1/diagnoses?search=&limit=` searches code and description

@@ -96,3 +96,11 @@ def test_search_treats_like_wildcards_literally(client: TestClient, seeded: None
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_search_succeeds_without_an_auth_cookie(client: TestClient, seeded: None) -> None:
+    # Diagnoses are reference data, not a patient record — unlike consultations, the
+    # router carries no get_current_doctor dependency.
+    response = client.get(URL, params={"search": "diab"})
+
+    assert response.status_code == 200

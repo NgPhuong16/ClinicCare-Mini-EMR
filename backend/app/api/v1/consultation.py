@@ -1,12 +1,18 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_current_doctor, get_db
 from app.models.consultation import Consultation
 from app.schemas.consultation import ConsultationCreate, ConsultationRead
 from app.services import consultation as consultation_service
 
-router = APIRouter(prefix="/consultations", tags=["consultations"])
+router = APIRouter(
+    prefix="/consultations",
+    tags=["consultations"],
+    # Consultations are patient records; ICD-10 lookup (app/api/v1/diagnosis.py) is public
+    # reference data and stays unprotected.
+    dependencies=[Depends(get_current_doctor)],
+)
 
 
 @router.post("", response_model=ConsultationRead, status_code=201)
