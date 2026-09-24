@@ -33,7 +33,7 @@ uv run ruff check . --fix && uv run ruff format .
 uv run mypy app
 uv run alembic revision --autogenerate -m "msg"
 uv run alembic upgrade head               # apply migrations
-uv run python -m app.scripts.seed         # load seeds/icd10_seed.sql
+uv run python -m app.scripts.seed         # load seeds/icd10_seed.sql + demo doctor
 ```
 
 Frontend — run from `frontend/`:
@@ -209,6 +209,18 @@ one clause of why. Don't relitigate an entry without a new reason.
   backend's `?code=` is an exact match, so a typed prefix like `E11` silently returns
   nothing while looking like a working search. Do not "simplify" this into a free-text box.
   The patient filter is the opposite — a `LIKE` substring — and stays a plain input.
+- 2026-09-24 — Optional JWT auth (milestone 7) adds a `doctors` table (email unique +
+  indexed, hashed_password), no `doctor_id` FK on consultations yet. Passwords are hashed
+  with stdlib `hashlib.scrypt` into a self-describing `scrypt$n$r$p$salt$hash` string,
+  verified with `hmac.compare_digest` — no passlib, per this file's "no dependency for
+  something the stdlib already does". The seed script also idempotently creates a demo
+  doctor (`doctor@cliniccare.local`) from `Settings.demo_doctor_password`, which has a
+  documented, non-secret default: it's a public demo credential meant to be printed in the
+  README for graders, not a real secret, so it does not need `.env`-only handling.
+- 2026-09-24 — `ruff format` emits PEP 758 unparenthesised `except A, B:` clauses, which is
+  valid syntax because the project requires Python >=3.14 (PEP 758 landed in 3.14). Do not
+  "fix" it back to parentheses and do not drop `ruff format` from the workflow. Parentheses
+  are still required when the except clause uses `as`.
 
 ## Project state
 
@@ -218,7 +230,9 @@ error-envelope handlers and `/health`; `.env.example` and a backend `README.md`.
 `DiagnosisCode`, `Consultation` and the `consultation_diagnoses` join table are defined,
 with one Alembic revision in `migrations/versions/` creating all three, and
 `seeds/icd10_seed.sql` holding 100 real ICD-10-CM codes loaded by
-`python -m app.scripts.seed`.
+`python -m app.scripts.seed`. Milestone 7 (in progress) has added a `doctors` table
+(`app/models/doctor.py`), password hashing in `app/core/security.py` (stdlib
+`hashlib.scrypt`), and a demo doctor account idempotently seeded alongside the ICD-10 codes.
 
 Both entities are built through every layer (schemas, repositories, services, routes):
 `GET /api/v1/diagnoses?search=&limit=` searches code and description
