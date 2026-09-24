@@ -6,9 +6,12 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from app.core.config import settings
 from app.core.database import Base
+from app.core.security import verify_password
 from app.models.diagnosis import DiagnosisCode
-from app.scripts.seed import SEED_FILE, load_seed
+from app.models.doctor import Doctor
+from app.scripts.seed import DEMO_DOCTOR_EMAIL, SEED_FILE, load_seed, seed_demo_doctor
 
 
 @pytest.fixture
@@ -46,3 +49,28 @@ def test_load_seed_without_table_raises(engine: Engine) -> None:
 
     with pytest.raises(RuntimeError, match="alembic upgrade head"):
         load_seed(engine, SEED_FILE)
+
+
+def _doctor_count(engine: Engine) -> int:
+    with Session(engine) as session:
+        return session.execute(select(func.count()).select_from(Doctor)).scalar_one()
+
+
+def test_seed_demo_doctor_creates_exactly_one(engine: Engine) -> None:
+    before, after = seed_demo_doctor(engine)
+
+    assert (before, after) == (0, 1)
+    assert _doctor_count(engine) == 1
+    with Session(engine) as session:
+        doctor = session.execute(select(Doctor)).scalar_one()
+        assert doctor.email == DEMO_DOCTOR_EMAIL
+        assert verify_password(settings.demo_doctor_password, doctor.hashed_password) is True
+
+
+def test_seed_demo_doctor_is_idempotent(engine: Engine) -> None:
+    seed_demo_doctor(engine)
+
+    before, after = seed_demo_doctor(engine)
+
+    assert (before, after) == (1, 1)
+    assert _doctor_count(engine) == 1
