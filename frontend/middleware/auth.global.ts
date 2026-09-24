@@ -7,7 +7,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const { doctor, isLoggedIn, fetchMe } = useAuth()
 
   if (doctor.value === undefined) {
-    await fetchMe()
+    try {
+      await fetchMe()
+    }
+    catch {
+      // fetchMe() already set doctor.value = null before rethrowing. Treat the visitor as
+      // logged out and fall through to the normal redirect below, rather than a 500 (e.g.
+      // for a NETWORK_ERROR when the backend is unreachable) taking over a hard load.
+    }
   }
 
   if (!isLoggedIn.value && to.path !== '/login') {

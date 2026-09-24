@@ -39,12 +39,21 @@ export function useAuth() {
   }
 
   async function logout(): Promise<void> {
-    await request('/auth/logout', { method: 'POST' })
-    doctor.value = null
-    // Without this the next person to log in on this browser would briefly see the
-    // previous doctor's cached consultations until the list refetches on its own.
-    clearNuxtData('consultations-list')
-    await navigateTo('/login')
+    try {
+      await request('/auth/logout', { method: 'POST' })
+    }
+    catch {
+      // Logging out client-side must still succeed even if the network call didn't — the
+      // caller has no way to retry a failed POST, and leaving the doctor "logged in"
+      // locally afterwards would be worse than silently swallowing this.
+    }
+    finally {
+      doctor.value = null
+      // Without this the next person to log in on this browser would briefly see the
+      // previous doctor's cached consultations until the list refetches on its own.
+      clearNuxtData('consultations-list')
+      await navigateTo('/login')
+    }
   }
 
   return {

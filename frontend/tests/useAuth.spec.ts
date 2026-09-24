@@ -1,5 +1,5 @@
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DoctorRead } from '~/types/api'
 import { AUTH_DOCTOR_STATE_KEY } from '~/composables/useApi'
@@ -12,6 +12,12 @@ mockNuxtImport('navigateTo', () => navigateToMock)
 
 const clearNuxtDataMock = vi.hoisted(() => vi.fn())
 mockNuxtImport('clearNuxtData', () => clearNuxtDataMock)
+
+// This file exercises the auth state directly, so it must start from a clean slate
+// rather than tests/setup.ts's default "logged in" seed for unrelated tests.
+beforeEach(() => {
+  clearNuxtState(AUTH_DOCTOR_STATE_KEY)
+})
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -105,5 +111,17 @@ describe('useAuth.logout', () => {
     const [url, options] = stub.mock.calls[0] as [string, { method: string }]
     expect(url.endsWith('/auth/logout')).toBe(true)
     expect(options.method).toBe('POST')
+  })
+
+  it('still clears the doctor and navigates to /login when the logout request fails', async () => {
+    useState<DoctorRead | null | undefined>(AUTH_DOCTOR_STATE_KEY, () => DOCTOR)
+    vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')))
+
+    const { doctor, logout } = useAuth()
+
+    await expect(logout()).resolves.toBeUndefined()
+    expect(doctor.value).toBeNull()
+    expect(clearNuxtDataMock).toHaveBeenCalledWith('consultations-list')
+    expect(navigateToMock).toHaveBeenCalledWith('/login')
   })
 })

@@ -44,6 +44,19 @@ describe('auth.global middleware', () => {
     expect(navigateToMock).toHaveBeenCalledWith({ path: '/login', query: { redirect: '/consultations' } })
   })
 
+  it('treats a fetchMe failure (e.g. an unreachable backend) as logged out, without throwing', async () => {
+    const doctor = stubUseAuth(undefined)
+    fetchMeMock.mockImplementation(async () => {
+      // Mirrors useAuth.fetchMe(): sets null before rethrowing on a non-401 failure.
+      doctor.value = null
+      throw new Error('NETWORK_ERROR')
+    })
+
+    await expect(authMiddleware(route('/consultations'), route('/'))).resolves.toBeUndefined()
+
+    expect(navigateToMock).toHaveBeenCalledWith({ path: '/login', query: { redirect: '/consultations' } })
+  })
+
   it('does not call fetchMe again once the doctor is already known', async () => {
     stubUseAuth(null)
 
