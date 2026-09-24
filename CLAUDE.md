@@ -239,6 +239,11 @@ one clause of why. Don't relitigate an entry without a new reason.
   rejects `doctor@cliniccare.local` as a "special-use or reserved name", and a format check
   adds nothing on login — a malformed address just fails to match on lookup like any other
   unknown email, and `authenticate()` gives both the same "Invalid email or password".
+- 2026-09-24 — `Settings.jwt_secret` is validated at startup to be at least 32 characters.
+  An unfilled `JWT_SECRET=` in `.env` is a blank string, not unset, and PyJWT rejects a
+  blank or short key with `InvalidKeyError` rather than `InvalidTokenError` — that surfaced
+  as a 500 on `/auth/login` and every consultation request instead of failing fast at
+  startup. The generated default (`token_urlsafe(32)`, 43 characters) still passes.
 
 ## Project state
 
